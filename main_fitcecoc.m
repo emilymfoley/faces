@@ -13,7 +13,7 @@
 % recognition:
 
 targetSize = [128,128];
-k=30;                                   % Number of features to consider
+k=40;                                   % Number of features to consider
 location = fullfile('lfw');
 
 disp('Creating image datastore...');
@@ -21,17 +21,33 @@ imds0 = imageDatastore(location,'IncludeSubfolders',true,'LabelSource','folderna
                       'ReadFcn', @(filename)imresize(im2gray(imread(filename)),targetSize));
 
 disp('Creating subset of several persons...');
-persons = {'Angelina_Jolie', 'Eduardo_Duhalde', 'Amelie_Mauresmo'}
-
-
-% NOTE: Alternatively, you could pick people based on some criteria
-% Below you find code that picks people with at least 10 and not more
-% than 40 images
-%
-% tbl = countEachLabel(imds0);
-% mask = tbl{:,2}>=10 & tbl{:,2}<=40;
-% disp(['Number of images: ',num2str(sum(tbl{mask,2}))]);
-% persons = unique(tbl{mask,1});
+persons = {'Angelina_Jolie', 'Eduardo_Duhalde', 'Amelie_Mauresmo', 'Abdullah_Gul',...
+    'Akhmed_Zakayev', 'Cherie_Blair', 'Cesar_Maia', 'Wen_Ho_Lee', 'Mark_Kelly', 'Phil_McGraw', ...
+    'Alvaro_Uribe', 'Ana_Palacio', 'Andre_Agassi', 'Andy_Roddick', 'Ann_Veneman',...
+    'Anna_Kournikova', 'Ariel_Sharon', 'Arnold_Schwarzenegger', 'Atal_Bihari_Vajpayee',...
+    'Ben_Affleck', 'Bill_Clinton', 'Bill_Gates', 'Bill_Simon', 'Britney_Spears', ...
+    'Carlos_Menem', 'Carlos_Moya', 'Catherine_Zeta-Jones', 'Charles_Moose', ...
+    'Colin_Powell', 'David_Nalbandian', 'Dick_Cheney', 'Dominique_de_Villepin',...
+    'Donald_Rumsfeld', 'Edmund_Stoiber', 'Fidel_Castro', 'George_HW_Bush',...
+    'George_Robertson', 'Gerhard_Schroeder', 'Gloria_Macapagal_Arroyo', ...
+    'Marcelo_Bielsa', 'Debra_Brown', 'Theresa_May', 'Gene_Robinson', 'Ben_Wallace', 'Gretchen_Mol', ...
+    'Halle_Berry', 'Hamid_Karzai', 'Hans_Blix', 'Hillary_Clinton', 'Hu_Jintao',...
+    'Jim_Talent', 'Simon_Cowell', 'Peter_Mackay', 'AJ_Cook', 'Casey_Mears', 'Viola_Davis', ...
+    'Jeb_Bush', 'Jennifer_Aniston', 'Jennifer_Capriati', 'Jennifer_Garner',...
+    'John_Bolton', 'John_Howard', 'John_Kerry', 'John_Negroponte', 'John_Snow', ...
+    'Joschka_Fischer', 'Jose_Maria_Aznar', 'Juan_Carlos_Ferrero', 'Julianne_Moore', ...
+    'Luciano_Pavarotti', 'Sadie_Frost', 'Chuck_Yeager', 'Peter_Medgyessy', 'Lois_Smart', 'Tonga', ...
+    'Lindsay_Davenport', 'Lleyton_Hewitt', 'Lucio_Gutierrez', 'Luiz_Inacio_Lula_da_Silva', ...
+    'Johnny_Depp', 'Ratna_Sari_Dewi_Sukarno', 'Keith_Bogans', 'Bob_Beauprez', 'Billy_Rork', ...
+    'Mahmoud_Abbas', 'Mark_Philippoussis', 'Megawati_Sukarnoputri', 'Meryl_Streep', ...
+    'Michael_Bloomberg', 'Michael_Jackson', 'Michael_Schumacher', 'Mike_Weir', 'Mohammad_Khatami',...
+    'Mohammed_Al-Douri', 'Muhammad_Ali', 'Nancy_Pelosi', 'Naomi_Watts', 'Nestor_Kirchner', ...
+    'Nicanor_Duarte_Frutos', 'Nicole_Kidman', 'Norah_Jones', 'Paradorn_Srichaphan', ...
+    'Paul_Bremer', 'Paul_Wolfowitz', 'Pervez_Musharraf', 'Pete_Sampras', 'Pierce_Brosnan',...
+    'Queen_Elizabeth_II', 'Recep_Tayyip_Erdogan', 'Renee_Zellweger', 'Ricardo_Lagos', 'Richard_Gephardt', ...
+    'Gilberto_Simoni', 'Mike_Matheny', 'John_Spencer', 'Prince_Harry', 'Jean_Carnahan', ...
+    'Saddam_Hussein', 'Salma_Hayek', 'Serena_Williams', 'Sergey_Lavrov', 'Silvio_Berlusconi', ... 
+    };
 
 
 [lia, locb] = ismember(imds0.Labels, persons);
@@ -102,39 +118,41 @@ tic;
 % You may try this, to get a more optimized model
 % 'OptimizeHyperparameters','all',...
 
-Mdl = fitcecoc(X, Y,'Verbose', 2,'Learners','svm',...
-               'Options',options);
+Mdl = fitcecoc(X, Y, 'Verbose', 2, 'Learners', 'svm', 'Options', options);
 toc;
 
 % Generate a plot in feature space using top two features
-nexttile(t);
-scatter3(X(:,1),X(:,2),X(:,3),50,c);
+% First plot - top 3 predictors
+figure; % Create a new figure window
+scatter3(X(:, 1), X(:, 2), X(:, 3), 50, c);
 title('A top 3-predictor plot');
 xlabel('x1');
 ylabel('x2');
 zlabel('x3');
 
-nexttile(t);
-scatter3(X(:,4),X(:,5),X(:,6),50,c);
+% Second plot - next 3 predictors
+figure; % Create a new figure window
+scatter3(X(:, 4), X(:, 5), X(:, 6), 50, c);
 title('A next 3-predictor plot');
 xlabel('x4');
 ylabel('x5');
 zlabel('x6');
 
-%[YPred,Score] = predict(Mdl,X);
-[YPred,Score,Cost] = resubPredict(Mdl);
+% Get predictions and scores
+[YPred, Score, Cost] = resubPredict(Mdl);
 
-% ROC = receiver operating characteristic
-% See https://en.wikipedia.org/wiki/Receiver_operating_characteristic
+% ROC plot
 disp('Plotting ROC metrics...');
 rm = rocmetrics(imds.Labels, Score, persons);
-nexttile(t);
+
+figure; % Create a new figure window for ROC plot
 plot(rm);
 
-disp('Plotting confusion matrix...')
-nexttile(t);
+% Confusion matrix plot
+disp('Plotting confusion matrix...');
+figure; % Create a new figure window for the confusion matrix
 confusionchart(Y, YPred);
-title(['Number of features: ' ,num2str(k)]);
+title(['Number of features: ', num2str(k)]);
 
 % Save the model and persons that the model recognizes.
 % NOTE: An important part of the submission.
